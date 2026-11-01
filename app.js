@@ -82,7 +82,11 @@ if(Array.isArray(window.SPICY_RECIPES))recipes.push(...window.SPICY_RECIPES);
 const spicyDuplicateMap={78:1,79:12,80:14,82:7,88:8,92:17};
 for(const [duplicateId,canonicalId] of Object.entries(spicyDuplicateMap)){
  const canonical=recipes.find(r=>r.id===canonicalId);
- if(canonical)canonical.category="hot";
+ const spicyVersion=recipes.find(r=>r.id===Number(duplicateId));
+ if(canonical&&spicyVersion){
+  Object.assign(canonical,{name:spicyVersion.name,desc:spicyVersion.desc,time:spicyVersion.time,ingredients:spicyVersion.ingredients,steps:spicyVersion.steps,imageQuery:spicyVersion.imageQuery,note:spicyVersion.note,category:"hot"});
+  delete canonical.image;
+ }
 }
 for(const r of recipes){
  if(r.id>=25&&r.id<=76)r.category="sweet";
