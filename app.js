@@ -1,4 +1,4 @@
-const $=s=>document.querySelector(s);
+const $=s=>document.querySelector(s);const $=s=>[...document.querySelectorAll(s)];
 const recipes=[
 {id:1,name:"شكشوكة تونسية",country:"🇹🇳 تونس",time:25,desc:"بيض في صلصة الطماطم والفلفل مع الهريسة.",ingredients:["بيض","طماطم","فلفل","ثوم","هريسة","زيت زيتون"],steps:["قطّع الطماطم والفلفل والثوم.","سخّن زيت الزيتون وأضف الخضار والهريسة واتركها 10 دقائق.","اصنع فجوات وأضف البيض وغطّ المقلاة حتى ينضج."],image:"https://images.unsplash.com/photo-1590412200988-a436970781fa?auto=format&fit=crop&w=900&q=80"},
 {id:2,name:"باستا بالطماطم والريحان",country:"🇮🇹 إيطاليا",time:30,desc:"طبق إيطالي بسيط بصلصة طماطم عطرية وريحان.",ingredients:["معكرونة","طماطم","ثوم","ريحان","زيت زيتون","جبن"],steps:["اسلق المعكرونة في ماء مملح.","حضّر صلصة الطماطم والثوم بزيت الزيتون لمدة 15 دقيقة.","اخلط المعكرونة بالصلصة وأضف الريحان والجبن."],image:"https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=900&q=80"},
