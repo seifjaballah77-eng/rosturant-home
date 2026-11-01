@@ -80,7 +80,7 @@ const recipes=[
 if(Array.isArray(window.SPICY_RECIPES))recipes.push(...window.SPICY_RECIPES);
 if(Array.isArray(window.WORLD_RECIPES))recipes.push(...window.WORLD_RECIPES);
 // تصنيف الوصفات ومنع تكرار الأطباق الموجودة مسبقاً بصيغة حارة.
-const spicyDuplicateMap={78:1,79:12,80:14,82:7,88:8,92:17};
+const spicyDuplicateMap={78:1,79:12,80:14,82:7,88:8,92:17,207:98};
 for(const [duplicateId,canonicalId] of Object.entries(spicyDuplicateMap)){
  const canonical=recipes.find(r=>r.id===canonicalId);
  const spicyVersion=recipes.find(r=>r.id===Number(duplicateId));
