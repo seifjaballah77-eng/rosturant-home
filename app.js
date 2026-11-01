@@ -93,13 +93,14 @@ for(const r of recipes){
  if(r.id>=25&&r.id<=76)r.category="sweet";
  else if(r.id>=77&&r.id<=128&&!spicyDuplicateMap[r.id])r.category="hot";
  else if(!r.category)r.category="savory";
+ if(r.id===6)r.category="sweet";
 }
 const seenRecipeNames=new Set();
 for(let i=recipes.length-1;i>=0;i--){
  const key=recipes[i].name.normalize("NFKC").toLowerCase().replace(/[\sـًٌٍَُِّْ()\-]/g,"");
  if(seenRecipeNames.has(key))recipes.splice(i,1);else seenRecipeNames.add(key);
 }
-const duplicateIds=new Set(Object.keys(spicyDuplicateMap).map(Number));
+const duplicateIds=new Set([...Object.keys(spicyDuplicateMap).map(Number),36]);
 for(let i=recipes.length-1;i>=0;i--)if(duplicateIds.has(recipes[i].id))recipes.splice(i,1);
 
 let ingredients=[],shopping=JSON.parse(localStorage.getItem("matbakhi-shopping")||"[]"),saved=JSON.parse(localStorage.getItem("matbakhi-saved")||"[]"),deferredInstall=null,timerId=null;
