@@ -78,6 +78,20 @@ const recipes=[
 {"id":75,"name":"كيروش (كيك المدخنة)","country":"حلويات عالمية","time":null,"desc":"حلوى مجرية أسطوانية مخبوزة ومغطاة بالسكر.","ingredients":[],"steps":[],"image":"https://images.unsplash.com/photo-1558326567-98ae2405596b?auto=format&fit=crop&w=900&q=80"},
 {"id":76,"name":"تريس ليتشيز","country":"حلويات عالمية","time":null,"desc":"كيكة لاتينية مشربة بمزيج من ثلاثة أنواع من الحليب.","ingredients":[],"steps":[],"image":"https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=900&q=80"}];
 if(Array.isArray(window.SPICY_RECIPES))recipes.push(...window.SPICY_RECIPES);
+// تصنيف الوصفات ومنع تكرار الأطباق الموجودة مسبقاً بصيغة حارة.
+const spicyDuplicateMap={78:1,79:12,80:14,82:7,88:8,92:17};
+for(const [duplicateId,canonicalId] of Object.entries(spicyDuplicateMap)){
+ const canonical=recipes.find(r=>r.id===canonicalId);
+ if(canonical)canonical.category="hot";
+}
+for(const r of recipes){
+ if(r.id>=25&&r.id<=76)r.category="sweet";
+ else if(r.id>=77&&r.id<=128&&!spicyDuplicateMap[r.id])r.category="hot";
+ else if(!r.category)r.category="general";
+}
+const duplicateIds=new Set(Object.keys(spicyDuplicateMap).map(Number));
+for(let i=recipes.length-1;i>=0;i--)if(duplicateIds.has(recipes[i].id))recipes.splice(i,1);
+
 let ingredients=[],shopping=JSON.parse(localStorage.getItem("matbakhi-shopping")||"[]"),saved=JSON.parse(localStorage.getItem("matbakhi-saved")||"[]"),deferredInstall=null,timerId=null;
 function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2600)}
 const commonsImageCache=new Map();
@@ -105,7 +119,10 @@ function activateRecipeImages(root){
  if("IntersectionObserver"in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){const img=entry.target;observer.unobserve(img);attachCommonsImage(img,img.dataset.imageQuery,img.parentElement.querySelector(".image-credit"));}}),{rootMargin:"250px"});imgs.forEach(img=>observer.observe(img));}
  else imgs.forEach(img=>attachCommonsImage(img,img.dataset.imageQuery,img.parentElement.querySelector(".image-credit")));
 }
+let activeCategory="all";
 function render(list=recipes){
+ list=list.filter(r=>activeCategory==="all"||r.category===activeCategory);
+ $(".category-filter").forEach(b=>b.classList.toggle("active",b.dataset.category===activeCategory));
  $("#recipeGrid").innerHTML=list.length?list.map(r=>'<article class="recipe-card" data-id="'+r.id+'"><div class="recipe-image"><img loading="lazy" '+(r.image?'src="'+r.image+'"':'data-image-query="'+(r.imageQuery||"")+'"')+' alt="'+r.name+'"><span class="country">'+r.country+'</span></div><div class="recipe-info"><h3>'+r.name+'</h3><p>'+r.desc+'</p><div class="recipe-meta"><span>◷ '+(r.time?r.time+" دقيقة":"تفاصيل الوقت قريباً")+'</span><span>✦ '+(r.ingredients?.length?"مقادير مفصلة":"سهل التحضير")+'</span></div></div></article>').join(""):'<div class="empty">لم نعثر على وصفات مطابقة. جرّب مكونات أخرى.</div>';
  $("#recipeGrid").querySelectorAll(".recipe-card").forEach(c=>c.addEventListener("click",()=>openRecipe(+c.dataset.id)));
  activateRecipeImages($("#recipeGrid"));
@@ -137,7 +154,7 @@ function showView(view){$("#detailView").classList.add("hidden");$("#secondaryVi
 function addIngredient(){const v=$("#ingredientInput").value.trim();if(v&&!ingredients.includes(v))ingredients.push(v);$("#ingredientInput").value="";$("#ingredientChips").innerHTML=ingredients.map((x,i)=>`<span class="chip">${x}<button data-remove="${i}">×</button></span>`).join("");$("#ingredientChips").querySelectorAll("button").forEach(b=>b.onclick=()=>{ingredients.splice(+b.dataset.remove,1);addIngredientRender()});}
 function addIngredientRender(){$("#ingredientChips").innerHTML=ingredients.map((x,i)=>`<span class="chip">${x}<button data-remove="${i}">×</button></span>`).join("");$("#ingredientChips").querySelectorAll("button").forEach(b=>b.onclick=()=>{ingredients.splice(+b.dataset.remove,1);addIngredientRender()})}
 function search(){const q=$("#searchInput").value.trim().toLowerCase();const terms=[q,...ingredients].filter(Boolean);const list=recipes.filter(r=>!terms.length||terms.some(t=>(r.name+" "+r.desc+" "+r.ingredients.map(x=>typeof x==="string"?x:x.name).join(" ")).toLowerCase().includes(t)));$("#sectionTitle").textContent=terms.length?"نتائج البحث والوصفات المناسبة":"وصفات تستحق التجربة";render(list);$("#detailView").classList.add("hidden")}
-$("#addIngredient").onclick=()=>{addIngredient();search()};$("#ingredientInput").addEventListener("keydown",e=>{if(e.key==="Enter"){$("#addIngredient").click()}});$("#searchBtn").onclick=search;$("#searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")search()});$("#clearFilters").onclick=()=>{$("#searchInput").value="";ingredients=[];addIngredientRender();$("#sectionTitle").textContent="وصفات تستحق التجربة";render()};$$(".side-link").forEach(b=>b.onclick=()=>showView(b.dataset.view));$("#menuBtn").onclick=()=>$("#sidebar").classList.toggle("open");$("#themeBtn").onclick=()=>{document.body.classList.toggle("light");localStorage.setItem("matbakhi-theme",document.body.classList.contains("light")?"light":"dark")};if(localStorage.getItem("matbakhi-theme")==="light")document.body.classList.add("light");$("#langBtn").onclick=()=>toast("اللغات الإضافية قيد الإعداد — العربية متاحة الآن");
+$("#addIngredient").onclick=()=>{addIngredient();search()};$("#ingredientInput").addEventListener("keydown",e=>{if(e.key==="Enter"){$("#addIngredient").click()}});$("#searchBtn").onclick=search;$("#searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")search()});$("#clearFilters").onclick=()=>{$("#searchInput").value="";ingredients=[];activeCategory="all";addIngredientRender();$("#sectionTitle").textContent="كل الوصفات";render()};$(".category-filter").forEach(b=>b.onclick=()=>{activeCategory=b.dataset.category;$("#sectionTitle").textContent=b.dataset.category==="sweet"?"قسم الحلويات":b.dataset.category==="hot"?"قسم الأكلات الحارة":"كل الوصفات";render()});$$(".side-link").forEach(b=>b.onclick=()=>showView(b.dataset.view));$("#menuBtn").onclick=()=>$("#sidebar").classList.toggle("open");$("#themeBtn").onclick=()=>{document.body.classList.toggle("light");localStorage.setItem("matbakhi-theme",document.body.classList.contains("light")?"light":"dark")};if(localStorage.getItem("matbakhi-theme")==="light")document.body.classList.add("light");$("#langBtn").onclick=()=>toast("اللغات الإضافية قيد الإعداد — العربية متاحة الآن");
 $("#notifyBtn").onclick=async()=>{if(!("Notification"in window)){toast("هذا المتصفح لا يدعم الإشعارات");return}const p=await Notification.requestPermission();toast(p==="granted"?"تم تفعيل الإشعارات لهذا الجهاز":"لم يتم منح إذن الإشعارات")};
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;$("#installBtn").classList.remove("hidden")});$("#installBtn").onclick=async()=>{if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$("#installBtn").classList.add("hidden")}else toast("استخدم قائمة المتصفح ثم اختر تثبيت التطبيق أو إضافة إلى الشاشة الرئيسية")};
 if("serviceWorker"in navigator&&location.protocol.startsWith("http")){const hadController=!!navigator.serviceWorker.controller;if(hadController)sessionStorage.removeItem("matbakhi-reloaded");navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadController&&!sessionStorage.getItem("matbakhi-reloaded")){sessionStorage.setItem("matbakhi-reloaded","1");location.reload()} });window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").then(reg=>{reg.update().catch(()=>{});reg.addEventListener("updatefound",()=>{const w=reg.installing;if(w)w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller)toast("تم تجهيز تحديث مطبخي وسيُفعّل تلقائياً.")})})}).catch(()=>{}))}
