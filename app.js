@@ -96,7 +96,7 @@ for(const r of recipes){
 }
 const seenRecipeNames=new Set();
 for(let i=recipes.length-1;i>=0;i--){
- const key=recipes[i].name.normalize("NFKC").toLowerCase().replace(/[\\sـًٌٍَُِّْ()\\-]/g,"");
+ const key=recipes[i].name.normalize("NFKC").toLowerCase().replace(/[\sـًٌٍَُِّْ()\-]/g,"");
  if(seenRecipeNames.has(key))recipes.splice(i,1);else seenRecipeNames.add(key);
 }
 const duplicateIds=new Set(Object.keys(spicyDuplicateMap).map(Number));
