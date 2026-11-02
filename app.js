@@ -107,9 +107,16 @@ for(let i=recipes.length-1;i>=0;i--)if(duplicateIds.has(recipes[i].id))recipes.s
 let ingredients=[],shopping=JSON.parse(localStorage.getItem("matbakhi-shopping")||"[]"),saved=JSON.parse(localStorage.getItem("matbakhi-saved")||"[]"),deferredInstall=null,timerId=null;
 function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2600)}
 const commonsImageCache=new Map(),commonsImageOwners=new Map();
+const commonsStoredImages=(()=>{try{return JSON.parse(localStorage.getItem("matbakhi-commons-images-v1")||"{}")}catch(e){return {}}})();
+for(const [query,info] of Object.entries(commonsStoredImages))if(info?.url&&!commonsImageOwners.has(info.url))commonsImageOwners.set(info.url,query);
 async function findCommonsImage(query,uniqueDish=false){
  const key=query.trim().toLowerCase();
  if(commonsImageCache.has(key))return commonsImageCache.get(key);
+ const saved=commonsStoredImages[key];
+ if(saved?.url&&(!uniqueDish||!commonsImageOwners.has(saved.url)||commonsImageOwners.get(saved.url)===key)){
+  if(uniqueDish)commonsImageOwners.set(saved.url,key);
+  const savedTask=Promise.resolve(saved);commonsImageCache.set(key,savedTask);return savedTask;
+ }
  const task=(async()=>{try{
   const p=new URLSearchParams({action:"query",format:"json",origin:"*",generator:"search",gsrnamespace:"6",gsrsearch:'filetype:bitmap '+query,gsrlimit:"20",prop:"imageinfo",iiprop:"url|extmetadata",iiurlwidth:"900"});
   const res=await fetch("https://commons.wikimedia.org/w/api.php?"+p.toString());if(!res.ok)return null;
@@ -121,7 +128,10 @@ async function findCommonsImage(query,uniqueDish=false){
   if(!x)return null;
   const url=x.info.thumburl||x.info.url;if(uniqueDish)commonsImageOwners.set(url,key);
   const m=x.info.extmetadata||{};
-  return {url,page:x.info.descriptionurl||"https://commons.wikimedia.org/wiki/"+encodeURIComponent(x.page.title.replace(/ /g,"_")),license:m.LicenseShortName?.value||"راجع الترخيص",artist:m.Artist?.value||""};
+  const result={url,page:x.info.descriptionurl||"https://commons.wikimedia.org/wiki/"+encodeURIComponent(x.page.title.replace(/ /g,"_")),license:m.LicenseShortName?.value||"راجع الترخيص",artist:m.Artist?.value||""};
+  commonsStoredImages[key]=result;
+  try{const keys=Object.keys(commonsStoredImages);while(keys.length>250)delete commonsStoredImages[keys.shift()];localStorage.setItem("matbakhi-commons-images-v1",JSON.stringify(commonsStoredImages))}catch(e){}
+  return result;
  }catch(e){return null}})();commonsImageCache.set(key,task);return task;
 }
 function attachCommonsImage(img,query,credit){
