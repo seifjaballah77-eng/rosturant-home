@@ -77,6 +77,7 @@ const recipes=[
 {"id":74,"name":"باستيل دي ناتا","country":"حلويات عالمية","time":null,"desc":"تارت كاسترد برتغالي مقرمش ومحمّر من الأعلى.","ingredients":[],"steps":[],"image":"https://images.unsplash.com/photo-1495147466023-ac5c588e2e94?auto=format&fit=crop&w=900&q=80"},
 {"id":75,"name":"كيروش (كيك المدخنة)","country":"حلويات عالمية","time":null,"desc":"حلوى مجرية أسطوانية مخبوزة ومغطاة بالسكر.","ingredients":[],"steps":[],"image":"https://images.unsplash.com/photo-1558326567-98ae2405596b?auto=format&fit=crop&w=900&q=80"},
 {"id":76,"name":"تريس ليتشيز","country":"حلويات عالمية","time":null,"desc":"كيكة لاتينية مشربة بمزيج من ثلاثة أنواع من الحليب.","ingredients":[],"steps":[],"image":"https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=900&q=80"}];
+if(Array.isArray(window.DESSERT_RECIPES)){for(const dessert of window.DESSERT_RECIPES){const existing=recipes.find(r=>r.id===dessert.id);if(existing)Object.assign(existing,dessert);}}
 if(Array.isArray(window.SPICY_RECIPES))recipes.push(...window.SPICY_RECIPES);
 if(Array.isArray(window.WORLD_RECIPES))recipes.push(...window.WORLD_RECIPES);
 // تصنيف الوصفات ومنع تكرار الأطباق الموجودة مسبقاً بصيغة حارة.
@@ -100,27 +101,32 @@ for(let i=recipes.length-1;i>=0;i--){
  const key=recipes[i].name.normalize("NFKC").toLowerCase().replace(/[\sـًٌٍَُِّْ()\-]/g,"");
  if(seenRecipeNames.has(key))recipes.splice(i,1);else seenRecipeNames.add(key);
 }
-const duplicateIds=new Set([...Object.keys(spicyDuplicateMap).map(Number),36]);
+const duplicateIds=new Set(Object.keys(spicyDuplicateMap).map(Number));
 for(let i=recipes.length-1;i>=0;i--)if(duplicateIds.has(recipes[i].id))recipes.splice(i,1);
 
 let ingredients=[],shopping=JSON.parse(localStorage.getItem("matbakhi-shopping")||"[]"),saved=JSON.parse(localStorage.getItem("matbakhi-saved")||"[]"),deferredInstall=null,timerId=null;
 function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");setTimeout(()=>el.classList.remove("show"),2600)}
-const commonsImageCache=new Map();
-async function findCommonsImage(query){
- if(commonsImageCache.has(query))return commonsImageCache.get(query);
+const commonsImageCache=new Map(),commonsImageOwners=new Map();
+async function findCommonsImage(query,uniqueDish=false){
+ const key=query.trim().toLowerCase();
+ if(commonsImageCache.has(key))return commonsImageCache.get(key);
  const task=(async()=>{try{
-  const p=new URLSearchParams({action:"query",format:"json",origin:"*",generator:"search",gsrnamespace:"6",gsrsearch:'filetype:bitmap '+query,gsrlimit:"8",prop:"imageinfo",iiprop:"url|extmetadata",iiurlwidth:"900"});
+  const p=new URLSearchParams({action:"query",format:"json",origin:"*",generator:"search",gsrnamespace:"6",gsrsearch:'filetype:bitmap '+query,gsrlimit:"20",prop:"imageinfo",iiprop:"url|extmetadata",iiurlwidth:"900"});
   const res=await fetch("https://commons.wikimedia.org/w/api.php?"+p.toString());if(!res.ok)return null;
-  const data=await res.json(),words=query.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>2);
+  const data=await res.json(),stop=new Set(["fresh","homemade","dessert","recipe","sweet","classic","with","and","the"]);
+  const words=query.toLowerCase().split(/[^a-z0-9]+/).filter(w=>w.length>2&&!stop.has(w));
   const found=Object.values(data.query?.pages||{}).map(page=>{const title=(page.title||"").toLowerCase().replace(/[_-]/g," ");const info=page.imageinfo?.[0];return {page,info,score:words.filter(w=>title.includes(w)).length};})
-   .filter(x=>x.info&&(x.info.thumburl||x.info.url)&&x.score>=Math.max(1,Math.ceil(words.length*.35))).sort((a,b)=>b.score-a.score);
-  if(!found.length)return null;const x=found[0],m=x.info.extmetadata||{};
-  return {url:x.info.thumburl||x.info.url,page:x.info.descriptionurl||"https://commons.wikimedia.org/wiki/"+encodeURIComponent(x.page.title.replace(/ /g,"_")),license:m.LicenseShortName?.value||"راجع الترخيص",artist:m.Artist?.value||""};
- }catch(e){return null}})();commonsImageCache.set(query,task);return task;
+   .filter(x=>x.info&&(x.info.thumburl||x.info.url)&&x.score>=Math.max(1,Math.ceil(words.length*.5))).sort((a,b)=>b.score-a.score);
+  const x=found.find(item=>{const url=item.info.thumburl||item.info.url;return !uniqueDish||!commonsImageOwners.has(url)||commonsImageOwners.get(url)===key;});
+  if(!x)return null;
+  const url=x.info.thumburl||x.info.url;if(uniqueDish)commonsImageOwners.set(url,key);
+  const m=x.info.extmetadata||{};
+  return {url,page:x.info.descriptionurl||"https://commons.wikimedia.org/wiki/"+encodeURIComponent(x.page.title.replace(/ /g,"_")),license:m.LicenseShortName?.value||"راجع الترخيص",artist:m.Artist?.value||""};
+ }catch(e){return null}})();commonsImageCache.set(key,task);return task;
 }
 function attachCommonsImage(img,query,credit){
  if(!img||!query)return;
- findCommonsImage(query).then(info=>{if(!info){if(credit)credit.textContent="لم نعثر بعد على صورة مطابقة موثوقة لهذا العنصر.";return;}
+ findCommonsImage(query,img.dataset.imageType==="dish").then(info=>{if(!info){if(credit)credit.textContent="لم نعثر على ملف مطابق بما يكفي في Wikimedia Commons؛ لم نضع صورة عشوائية.";return;}
  img.src=info.url;img.alt=img.alt+" — Wikimedia Commons";
  if(credit)credit.innerHTML='المصدر: <a href="'+info.page+'" target="_blank" rel="noopener">Wikimedia Commons</a> · '+info.license+(info.artist?' · '+info.artist:'');
  });
@@ -134,7 +140,7 @@ let activeCategory="all",activeCuisine="all";
 function render(list=recipes){
  list=list.filter(r=>(activeCategory==="all"||r.category===activeCategory)&&(activeCuisine==="all"||r.country===activeCuisine));
  $(".category-filter").forEach(b=>b.classList.toggle("active",b.dataset.category===activeCategory));
- $("#recipeGrid").innerHTML=list.length?list.map(r=>'<article class="recipe-card" data-id="'+r.id+'"><div class="recipe-image"><img loading="lazy" '+(r.image?'src="'+r.image+'"':'data-image-query="'+(r.imageQuery||"")+'"')+' alt="'+r.name+'"><span class="country">'+r.country+'</span></div><div class="recipe-info"><h3>'+r.name+'</h3><p>'+r.desc+'</p><div class="recipe-meta"><span>◷ '+(r.time?r.time+" دقيقة":"تفاصيل الوقت قريباً")+'</span><span>✦ '+(r.ingredients?.length?"مقادير مفصلة":"سهل التحضير")+'</span></div></div></article>').join(""):'<div class="empty">لم نعثر على وصفات مطابقة. جرّب مكونات أخرى.</div>';
+ $("#recipeGrid").innerHTML=list.length?list.map(r=>'<article class="recipe-card" data-id="'+r.id+'"><div class="recipe-image"><img loading="lazy" data-image-type="dish" '+(r.image?'src="'+r.image+'"':'data-image-query="'+(r.imageQuery||"")+'"')+' alt="'+r.name+'"><span class="country">'+r.country+'</span></div><div class="recipe-info"><h3>'+r.name+'</h3><p>'+r.desc+'</p><div class="recipe-meta"><span>◷ '+(r.time?r.time+" دقيقة":"تفاصيل الوقت قريباً")+'</span><span>✦ '+(r.ingredients?.length?"مقادير مفصلة":"سهل التحضير")+'</span></div></div></article>').join(""):'<div class="empty">لم نعثر على وصفات مطابقة. جرّب مكونات أخرى.</div>';
  $("#recipeGrid").querySelectorAll(".recipe-card").forEach(c=>c.addEventListener("click",()=>openRecipe(+c.dataset.id)));
  activateRecipeImages($("#recipeGrid"));
 }
@@ -142,9 +148,13 @@ function openRecipe(id){
  const r=recipes.find(x=>x.id===id);if(!r)return;
  $("#detailView").classList.remove("hidden");$("#secondaryView").classList.add("hidden");
  const rows=(r.ingredients||[]).map(x=>typeof x==="string"?{name:x,amount:"حسب الحاجة",explanation:"مكوّن من مكونات الوصفة.",imageQuery:x}:x);
+ const formatDuration=minutes=>minutes>=60?Math.floor(minutes/60)+" س "+(minutes%60?minutes%60+" د":""):minutes+" د";
+ const specs=[["التحضير",r.prepTime],["الطهي",r.cookTime],["الراحة",r.restTime],["الإجمالي",r.totalTime??r.time]].filter(([,v])=>Number.isFinite(v)).map(([label,value])=>'<span><b>'+label+'</b> '+formatDuration(value)+'</span>');
+ if(r.servings)specs.push('<span><b>الحصص</b> '+r.servings+'</span>');
+ if(r.difficulty)specs.push('<span><b>الصعوبة</b> '+r.difficulty+'</span>');
  $("#detailView").innerHTML='<div class="detail-card"><button class="text-btn" id="closeDetail">← العودة للوصفات</button>'+
- '<div class="dish-photo"><img id="dishPhoto" '+(r.image?'src="'+r.image+'"':'data-image-query="'+(r.imageQuery||"")+'"')+' alt="'+r.name+'"><small class="image-credit"></small></div>'+
- '<span class="eyebrow">'+r.country+' · '+(r.time?r.time+" دقيقة":"الوقت قيد الإضافة")+'</span><h2>'+r.name+'</h2><p>'+r.desc+'</p>'+
+ '<div class="dish-photo"><img id="dishPhoto" data-image-type="dish" '+(r.image?'src="'+r.image+'"':'data-image-query="'+(r.imageQuery||"")+'"')+' alt="'+r.name+'"><small class="image-credit"></small></div>'+
+ '<span class="eyebrow">'+r.country+' · '+(r.time?r.time+" دقيقة":"الوقت قيد الإضافة")+'</span><h2>'+r.name+'</h2><p>'+r.desc+'</p><div class="recipe-specs">'+specs.join('')+'</div>'+
  '<h3>المكونات والكميات وشرحها</h3><div class="ingredient-photo-grid">'+rows.map(x=>'<article class="ingredient-photo-card"><img loading="lazy" data-image-query="'+(x.imageQuery||x.name)+'" alt="'+x.name+'"><div class="ingredient-photo-copy"><strong>'+x.name+'</strong><span class="ingredient-amount">'+x.amount+'</span><p>'+x.explanation+'</p><small class="image-credit"></small></div></article>').join("")+'</div>'+
  '<div class="detail-actions"><button class="action-btn" id="saveRecipe">♡ '+(saved.includes(id)?"إزالة من المفضلة":"أضف للمفضلة")+'</button><button class="action-btn" id="addAllShopping">＋ أضف المكونات للمشتريات</button></div>'+
  '<h3>طريقة التحضير</h3><ol>'+(r.steps||[]).map(x=>'<li>'+x+' <button class="action-btn step-timer" data-min="5">مؤقت 5 دقائق</button></li>').join("")+'</ol>'+
