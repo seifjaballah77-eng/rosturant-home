@@ -131,4 +131,23 @@
  window.openRecipe=function(id){originalRecipeOpen(id);enhanceTimer()};
  applyLanguage();
  if("serviceWorker"in navigator){navigator.serviceWorker.ready.then(reg=>reg.update().catch(()=>{})).catch(()=>{})}
+ // Reliable sidebar navigation: intercept before legacy per-button handlers.
+ const sidebarRoot=q1("#sidebar");
+ if(sidebarRoot&&!sidebarRoot.dataset.reliableNavBound){
+  sidebarRoot.dataset.reliableNavBound="1";
+  sidebarRoot.addEventListener("click",event=>{
+   const button=event.target.closest(".side-link[data-view]");
+   if(!button)return;
+   const view=button.dataset.view;
+   if(view==="toolbox")return;
+   if(!["home","discover","smart","shopping","saved","planner"].includes(view))return;
+   event.preventDefault();
+   event.stopPropagation();
+   event.stopImmediatePropagation();
+   const navigate=window.showView||originalShow;
+   if(typeof navigate==="function")navigate(view);
+   else if(typeof toast==="function")toast("تعذر فتح القسم؛ أعد تحميل الصفحة.");
+  },true);
+ }
+
 })();
