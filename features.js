@@ -30,22 +30,42 @@
  function isCheap(r){const s=(r.name+" "+r.desc+" "+(r.ingredients||[]).map(x=>typeof x==="string"?x:x.name).join(" ")).toLowerCase();return !/سلمون|جمبري|روبيان|صنوبر|زعفران|لوز|ماسكاربوني|سلمون|steak/.test(s)}
  window.render=function(list){
   let source=Array.isArray(list)?list.slice():recipes.slice();
-  if(quickFilter==="fast")source=source.filter(r=>(r.totalTime??r.time??999)<=30);
+  if(quickFilter==="fast")source=source.filter(r=>Number(r.totalTime??r.time)>0&&Number(r.totalTime??r.time)<=30);
   if(quickFilter==="cheap")source=source.filter(isCheap);
   if(quickFilter==="healthy")source=source.filter(isHealthy);
-  if(!Array.isArray(list)&&quickFilter==="all")source=recipes;
   originalRender(source);
   const ratings=read("matbakhi-ratings-v1",{});
   qa(".recipe-card[data-id]").forEach(card=>{
    const r=recipes.find(x=>x.id===Number(card.dataset.id));if(!r)return;
    const info=card.querySelector(".recipe-info");if(!info)return;
    const badges=document.createElement("div");badges.className="feature-badges";
-   const tags=[];if((r.totalTime??r.time??999)<=30)tags.push(["سريع",""]);if(isCheap(r))tags.push(["اقتصادي",""]);if(isHealthy(r))tags.push(["خفيف",""]);
+   const tags=[];if(Number(r.totalTime??r.time)>0&&Number(r.totalTime??r.time)<=30)tags.push(["سريع",""]);if(isCheap(r))tags.push(["اقتصادي",""]);if(isHealthy(r))tags.push(["خفيف",""]);
    if(r.category==="sweet")tags.push(["حلو","warm"]);if(r.category==="hot")tags.push(["حار","warm"]);
    badges.innerHTML=tags.slice(0,3).map(x=>'<span class="feature-badge '+x[1]+'">'+x[0]+'</span>').join("");
    const rating=ratings[r.id];if(rating)badges.innerHTML+='<span class="feature-badge warm">★ '+rating.avg.toFixed(1)+'</span>';
    info.insertBefore(badges,info.firstChild);
   });
+ };
+ // One shared set of handlers for every discovery filter.
+ qa(".category-filter").forEach(button=>button.onclick=()=>{
+  activeCategory=button.dataset.category||"all";
+  q1("#sectionTitle").textContent=({all:"كل الوصفات",savory:"الأطباق المالحة",sweet:"قسم الحلويات",hot:"قسم الأكلات الحارة",soup:"الشوربات",bakery:"المخبوزات",drink:"المشروبات"})[activeCategory]||"الوصفات";
+  q1("#detailView").classList.add("hidden");window.render();
+ });
+ q1("#cuisineFilter").onchange=event=>{activeCuisine=event.target.value||"all";q1("#detailView").classList.add("hidden");window.render()};
+ qa(".mini-filter").forEach(button=>button.onclick=()=>{
+  quickFilter=button.dataset.quick===quickFilter?"all":button.dataset.quick;
+  qa(".mini-filter").forEach(item=>item.classList.toggle("active",item===button&&quickFilter!=="all"));
+  q1("#detailView").classList.add("hidden");
+  q1("#sectionTitle").textContent=quickFilter==="fast"?"وصفات أقل من 30 دقيقة":quickFilter==="cheap"?"وصفات اقتصادية":quickFilter==="healthy"?"وصفات خفيفة ومتوازنة":"كل الوصفات";
+  window.render();
+ });
+ q1("#clearFilters").onclick=()=>{
+  activeCategory="all";activeCuisine="all";quickFilter="all";
+  q1("#cuisineFilter").value="all";q1("#searchInput").value="";
+  qa(".category-filter").forEach(button=>button.classList.toggle("active",button.dataset.category==="all"));
+  qa(".mini-filter").forEach(button=>button.classList.remove("active"));
+  q1("#detailView").classList.add("hidden");q1("#sectionTitle").textContent="كل الوصفات";window.render();
  };
  function addFeaturePanel(r){
   const detail=q1("#detailView .detail-card");if(!detail||!r)return;
