@@ -82,7 +82,7 @@
    window.render(list);qa(".side-link").forEach(b=>b.classList.toggle("active",b.dataset.view===view));q1("#sidebar").classList.remove("open");return;
   }
   if(view==="planner"){
-   q1("#detailView").classList.add("hidden");q1("#recipeGrid").classList.add("hidden");q1("#secondaryView").classList.remove("hidden");qa(".side-link").forEach(b=>b.classList.toggle("active",b.dataset.view===view));q1("#sidebar").classList.remove("open");
+   q1("#detailView").classList.add("hidden");q1("#recipeGrid").classList.remove("hidden");q1("#secondaryView").classList.remove("hidden");qa(".side-link").forEach(b=>b.classList.toggle("active",b.dataset.view===view));q1("#sidebar").classList.remove("open");
    const plan=read("matbakhi-week-plan-v1",{}),days=["السبت","الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
    q1("#sectionTitle").textContent="مخطط وجبات الأسبوع";
    q1("#secondaryView").innerHTML='<div class="detail-card"><h2>خطّط أسبوعك</h2><p>اختر وصفة لكل يوم. تُحفظ الخطة محلياً على هذا الجهاز.</p><div class="plan-grid">'+days.map((d,i)=>'<label>'+d+'<select data-day="'+i+'"><option value="">بدون وصفة</option>'+recipes.map(r=>'<option value="'+r.id+'" '+(String(plan[i])===String(r.id)?"selected":"")+'>'+r.name.replace(/</g,"&lt;")+'</option>').join("")+'</select></label>').join("")+'</div><button class="primary-btn" id="saveWeekPlan">حفظ خطة الأسبوع</button></div>';
