@@ -1,7 +1,7 @@
 /* Matbakhi feature layer — preserves existing recipe and user-storage keys. */
 (()=>{
  "use strict";
- const $=s=>document.querySelector(s),$=s=>[...document.querySelectorAll(s)];
+ const q1=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
  if(!localStorage.getItem("matbakhi-theme")){document.body.classList.add("light");localStorage.setItem("matbakhi-theme","light")};
  const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch(_){return d}};
  const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(_){if(typeof toast==="function")toast("مساحة التخزين ممتلئة؛ تعذر حفظ هذا التغيير")}};
