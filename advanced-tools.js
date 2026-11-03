@@ -27,7 +27,7 @@
   "حليب":[61,3.2,4.8,3.3],"جبن":[350,25,2,27],"موزاريلا":[280,28,3,17],"زبادي":[61,3.5,4.7,3.3],
   "تفاح":[52,0.3,14,0.2],"موز":[89,1.1,23,0.3],"تونة":[132,29,0,1],"سمك":[120,22,0,4]
  };
- const matchNut=name=>Object.entries(nutrition).find(([k])=>name.toLowerCase().includes(k.toLowerCase()));
+ const matchNut=name=>Object.entries(nutrition).find(([k])=>name.toLowerCase().includes(k.toLowerCase()))?.[1]||null;
  const parseQty=s=>{const m=String(s||"").match(/(\d+(?:[.,]\d+)?)/);if(!m)return null;let n=Number(m[1].replace(",","."));if(/كغ|كيلو/.test(s))n*=1000;else if(/مل|مليلتر/.test(s))n*=1;else if(/كوب/.test(s))n*=200;else if(/ملعقة كبيرة/.test(s))n*=15;else if(/ملعقة صغيرة/.test(s))n*=5;else if(!/غ|جرام|غرام/.test(s))return null;return n};
  function addNav(){
   const side=$("#sidebar");if(!side||side.querySelector('[data-view="toolbox"]'))return;
