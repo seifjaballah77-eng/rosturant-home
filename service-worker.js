@@ -1,4 +1,4 @@
-const CACHE="matbakhi-cache-v15";
+const CACHE="matbakhi-cache-v16";
 const IMAGE_CACHE="matbakhi-images-v2";
 const CORE=["./","./index.html","./styles.css","./app.js","./features.js","./advanced-tools.js","./spicy-recipes.js","./world-recipes.js","./dessert-recipes.js","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting()))});
