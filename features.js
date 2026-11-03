@@ -75,6 +75,7 @@
  const oldShow=originalShow;
  window.showView=function(view){
   if(view==="smart"){
+   activeCategory="all";activeCuisine="all";
    q1("#detailView").classList.add("hidden");q1("#secondaryView").classList.add("hidden");q1("#recipeGrid").classList.remove("hidden");q1("#sectionTitle").textContent="وصفات تناسب مكوناتك";
    const terms=(ingredients||[]);let list=recipes.map(r=>({r,score:matchIngredients(r)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.r);
    if(!terms.length){q1("#sectionTitle").textContent="أضف مكوناتك أولاً لنقترح وصفات";list=recipes.slice(0,12)}
