@@ -50,6 +50,7 @@
   const b=document.createElement("button");b.className="side-link";b.dataset.view="toolbox";b.innerHTML='<span class="nav-icon">✧</span><span>أدوات المطبخ الذكية</span>';const bottom=side.querySelector(".sidebar-bottom");side.insertBefore(b,bottom||null);b.addEventListener("click",openToolbox);
  }
  function openToolbox(){
+  if(window.setMatbakhiViewMode)window.setMatbakhiViewMode("section");
   $("#detailView").classList.add("hidden");$("#recipeGrid").classList.add("hidden");$("#secondaryView").classList.remove("hidden");
   $$(".side-link").forEach(b=>b.classList.toggle("active",b.dataset.view==="toolbox"));$("#sidebar").classList.remove("open");$("#sectionTitle").textContent="مركز أدوات مطبخي";
   const custom=read("matbakhi-custom-recipes-v1",[]);
