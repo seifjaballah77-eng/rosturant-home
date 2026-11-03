@@ -1,7 +1,8 @@
 /* Matbakhi feature layer — preserves existing recipe and user-storage keys. */
 (()=>{
  "use strict";
- const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+ const $=s=>document.querySelector(s),$=s=>[...document.querySelectorAll(s)];
+ if(!localStorage.getItem("matbakhi-theme")){document.body.classList.add("light");localStorage.setItem("matbakhi-theme","light")};
  const read=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||JSON.stringify(d))}catch(_){return d}};
  const write=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(_){if(typeof toast==="function")toast("مساحة التخزين ممتلئة؛ تعذر حفظ هذا التغيير")}};
  const labels={ar:{home:"الرئيسية",discover:"اكتشف الوصفات",smart:"ماذا أطبخ اليوم؟",shopping:"قائمة المشتريات",saved:"وصفاتي المحفوظة",planner:"مخطط الوجبات",title:"وصفات تستحق التجربة",search:"ابحث باسم الطبق أو المكوّن أو البلد…",suggest:"اقترح وصفات مناسبة"},fr:{home:"Accueil",discover:"Découvrir",smart:"Que cuisiner ?",shopping:"Liste de courses",saved:"Favoris",planner:"Planificateur",title:"Recettes à découvrir",search:"Chercher un plat ou ingrédient…",suggest:"Trouver des recettes"},en:{home:"Home",discover:"Discover recipes",smart:"What should I cook?",shopping:"Shopping list",saved:"Saved recipes",planner:"Meal planner",title:"Recipes to try",search:"Search dish or ingredient…",suggest:"Suggest recipes"},es:{home:"Inicio",discover:"Descubrir recetas",smart:"¿Qué cocino hoy?",shopping:"Lista de compras",saved:"Favoritos",planner:"Plan semanal",title:"Recetas para probar",search:"Buscar plato o ingrediente…",suggest:"Sugerir recetas"},it:{home:"Home",discover:"Scopri ricette",smart:"Cosa cucino oggi?",shopping:"Lista della spesa",saved:"Preferiti",planner:"Piano pasti",title:"Ricette da provare",search:"Cerca piatto o ingrediente…",suggest:"Suggerisci ricette"}};
@@ -19,7 +20,7 @@
   write("matbakhi-language",currentLang);
  }
  function matchIngredients(r){
-  const wanted=(window.ingredients||[]).map(x=>x.toLocaleLowerCase());
+  const wanted=(ingredients||[]).map(x=>x.toLocaleLowerCase());
   if(!wanted.length)return 0;
   const list=(r.ingredients||[]).map(x=>(typeof x==="string"?x:x.name||"").toLocaleLowerCase());
   let hits=0;wanted.forEach(w=>{if(list.some(v=>v.includes(w)||w.includes(v)))hits++});
@@ -67,15 +68,15 @@
  function startCookMode(r){
   cookRecipe=r;cookIndex=0;const steps=r.steps||[];if(!steps.length){toast("لا توجد خطوات مسجلة لهذه الوصفة بعد");return}
   let modal=$("#cookMode");if(!modal){modal=document.createElement("div");modal.id="cookMode";modal.className="cook-overlay";document.body.appendChild(modal)}
-  function paint(){modal.innerHTML='<div class="cook-sheet"><button id="cookClose" class="cook-close">×</button><span class="eyebrow">وضع الطبخ · '+(cookIndex+1)+' / '+steps.length+'</span><div class="cook-progress"><i style="width:'+((cookIndex+1)/steps.length*100)+'%"></i></div><h2>'+r.name+'</h2><p class="cook-step">'+steps[cookIndex]+'</p><div class="cook-controls"><button id="cookPrev" class="action-btn" '+(cookIndex===0?"disabled":"")+'>السابق</button><button id="cookNext" class="primary-btn">'+(cookIndex===steps.length-1?"إنهاء":"الخطوة التالية")+'</button></div><p class="cook-tip">ضع الجهاز في مكان آمن واتبع الخطوات بالترتيب.</p></div>';
-   $("#cookClose").onclick=()=>modal.classList.remove("show");$("#cookPrev").onclick=()=>{cookIndex=Math.max(0,cookIndex-1);paint()};$("#cookNext").onclick=()=>{if(cookIndex===steps.length-1){modal.classList.remove("show");toast("أحسنت! انتهيت من خطوات الوصفة.");return}cookIndex++;paint()}}
+  function paint(){modal.innerHTML='<div class="cook-sheet"><button id="cookClose" class="cook-close">×</button><span class="eyebrow">وضع الطبخ · '+(cookIndex+1)+' / '+steps.length+'</span><div class="cook-progress"><i style="width:'+((cookIndex+1)/steps.length*100)+'%"></i></div><h2>'+r.name+'</h2><p class="cook-step">'+steps[cookIndex]+'</p><div class="cook-controls"><button id="cookSpeak" class="action-btn">🔊 استمع للخطوة</button><button id="cookPrev" class="action-btn" '+(cookIndex===0?"disabled":"")+'>السابق</button><button id="cookNext" class="primary-btn">'+(cookIndex===steps.length-1?"إنهاء":"الخطوة التالية")+'</button></div><p class="cook-tip">ضع الجهاز في مكان آمن واتبع الخطوات بالترتيب.</p></div>';
+   $("#cookClose").onclick=()=>modal.classList.remove("show");$("#cookSpeak").onclick=()=>{if("speechSynthesis"in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(steps[cookIndex]);u.lang=currentLang==="ar"?"ar":currentLang+"-"+currentLang.toUpperCase();speechSynthesis.speak(u)}else toast("القراءة الصوتية غير مدعومة في هذا المتصفح")};$("#cookPrev").onclick=()=>{cookIndex=Math.max(0,cookIndex-1);paint()};$("#cookNext").onclick=()=>{if(cookIndex===steps.length-1){modal.classList.remove("show");toast("أحسنت! انتهيت من خطوات الوصفة.");return}cookIndex++;paint()}}
   paint();modal.classList.add("show");
  }
  const oldShow=originalShow;
  window.showView=function(view){
   if(view==="smart"){
    $("#detailView").classList.add("hidden");$("#secondaryView").classList.add("hidden");$("#recipeGrid").classList.remove("hidden");$("#sectionTitle").textContent="وصفات تناسب مكوناتك";
-   const terms=(window.ingredients||[]);let list=recipes.map(r=>({r,score:matchIngredients(r)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.r);
+   const terms=(ingredients||[]);let list=recipes.map(r=>({r,score:matchIngredients(r)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).map(x=>x.r);
    if(!terms.length){$("#sectionTitle").textContent="أضف مكوناتك أولاً لنقترح وصفات";list=recipes.slice(0,12)}
    window.render(list);$$(".side-link").forEach(b=>b.classList.toggle("active",b.dataset.view===view));$("#sidebar").classList.remove("open");return;
   }
@@ -90,7 +91,7 @@
  };
  window.openRecipe=function(id){originalOpen(id);const r=recipes.find(x=>x.id===id);if(r)addFeaturePanel(r)};
  $("#smartSuggest").onclick=()=>window.showView("smart");
- $("#searchBtn").onclick=()=>{quickFilter="all";const q=$("#searchInput").value.trim().toLowerCase();const terms=[q,...(window.ingredients||[])].filter(Boolean);const list=recipes.map(r=>({r,score:matchIngredients(r)})).filter(({r,score})=>!terms.length||(r.name+" "+r.desc+" "+r.country+" "+(r.ingredients||[]).map(x=>typeof x==="string"?x:x.name).join(" ")).toLowerCase().includes(q)||score>0).sort((a,b)=>b.score-a.score).map(x=>x.r);$("#sectionTitle").textContent="نتائج البحث والوصفات المناسبة";window.render(list);$("#detailView").classList.add("hidden")};
+ $("#searchBtn").onclick=()=>{quickFilter="all";const q=$("#searchInput").value.trim().toLowerCase();const terms=[q,...(ingredients||[])].filter(Boolean);const list=recipes.map(r=>({r,score:matchIngredients(r)})).filter(({r,score})=>!terms.length||(r.name+" "+r.desc+" "+r.country+" "+(r.ingredients||[]).map(x=>typeof x==="string"?x:x.name).join(" ")).toLowerCase().includes(q)||score>0).sort((a,b)=>b.score-a.score).map(x=>x.r);$("#sectionTitle").textContent="نتائج البحث والوصفات المناسبة";window.render(list);$("#detailView").classList.add("hidden")};
  $$(".mini-filter").forEach(b=>b.onclick=()=>{quickFilter=b.dataset.quick===quickFilter?"all":b.dataset.quick;$$(".mini-filter").forEach(x=>x.classList.toggle("active",x===b&&quickFilter!=="all"));window.render();$("#sectionTitle").textContent=quickFilter==="fast"?"وصفات سريعة":quickFilter==="cheap"?"وصفات اقتصادية":quickFilter==="healthy"?"وصفات خفيفة ومتوازنة":"كل الوصفات"});
  $("#clearFilters").addEventListener("click",()=>{quickFilter="all";$$(".mini-filter").forEach(x=>x.classList.remove("active"))});
  $("#ingredientPhoto").addEventListener("change",e=>{const file=e.target.files&&e.target.files[0];if(!file)return;const url=URL.createObjectURL(file);$("#photoAssist").classList.remove("hidden");$("#photoAssist").innerHTML='<b>صورة المكونات جاهزة</b><p>هذه النسخة لا تتعرف آلياً على الطعام من الصورة بعد. أضف أسماء ما يظهر في الصورة في خانة المكونات أعلاه للحصول على اقتراحات دقيقة.</p><img alt="معاينة الصورة المختارة" src="'+url+'">';});
